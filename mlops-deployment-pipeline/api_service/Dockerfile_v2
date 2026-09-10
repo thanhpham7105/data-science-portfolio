@@ -1,0 +1,35 @@
+FROM python:3.12.1-slim-bookworm
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl gcc g++ libstdc++6 \
+ && rm -rf /var/lib/apt/lists/*
+
+# 1) Workdir is the app root
+WORKDIR /app
+
+# 2) Install Python deps
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 3) Copy files
+COPY Api_v1.py /app/
+COPY Api_v2.py /app/
+COPY airport_encodings.json /app/
+COPY finalized_model.pkl /app/
+
+# 4) Include tests for reference
+# COPY test/ /app/test/
+
+# 5) Non-root user
+RUN useradd -m -u 10001 appuser && chown -R appuser:appuser /app
+USER appuser
+
+# 6) Health + port
+EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl -fsS http://localhost:8000/ || exit 1
+
+# 7) Start API
+CMD ["uvicorn", "Api_v2:app", "--host", "0.0.0.0", "--port", "8000"]

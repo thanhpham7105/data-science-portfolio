@@ -1,0 +1,26 @@
+name: flight-delay-pipeline
+conda_env: pipeline_env.yaml
+
+entry_points:
+  import_data:
+    parameters:
+      raw_csv:  {type: path,   default: data/T_ONTIME_REPORTING.csv}
+      out_csv:  {type: string, default: data/imported.csv}
+      log_file: {type: string, default: import_data.log}
+    command: "python B_import_format_v2.py --input_csv {raw_csv} --output_csv {out_csv} --log_file {log_file}"
+
+  clean_data:
+    parameters:
+      airport:  {type: string}
+      month:    {type: int}
+      in_csv:   {type: string, default: data/imported.csv}
+      out_csv:  {type: string, default: data/cleaned.csv}
+      log_file: {type: string, default: clean_data.log}
+    command: "python C_filter_clean_v2.py --input_csv {in_csv} --airport {airport} --month {month} --output_csv {out_csv} --log_file {log_file}"
+
+  poly_regressor:
+    parameters:
+      cleaned_csv: {type: string, default: data/cleaned.csv}
+      num_alphas:  {type: int, default: 20}
+      order:       {type: int, default: 1}
+    command: "python D_poly_regressor_v2.py --cleaned_csv {cleaned_csv} --num_alphas {num_alphas} --order {order}"
